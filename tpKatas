@@ -1,0 +1,19 @@
+module Library
+    where
+
+import Lib
+
+funcionKata::(Ord a,Num a)=>a->a
+funcionKata x | x > 5 = x
+              | x >= 0 && x <= 5 = x-1
+              | x < 0 = 2*x + 3   --OTHERWISE
+
+funcionKata1::(Ord a,Num a)=>a->a
+funcionKata1 x | x > 5 = x
+               | x >= 0 && x <= 5 = x-1
+               | otherwise = ((+3).(2*)) x
+
+funcionKata2::(Ord a,Num a)=>a->a
+funcionKata2 x | x > 5 = x
+               | x < 0 = ((+3).(2*)) x
+               | otherwise = x-1
