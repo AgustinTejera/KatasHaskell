@@ -1,0 +1,13 @@
+import Lib
+import Library
+import Test.Hspec
+
+main :: IO ()
+main = hspec $ do
+  describe "Tests de la funcionKata" $ do
+    it "El numero 0, devuelve -1" $ do
+      funcionKata2 0 `shouldBe` (-1)
+    it "El numero 6, devuelve 6" $ do
+      funcionKata2 6 `shouldBe` 6
+    it "Al ingresar el numero -3 en funcionKata, devuelve -3" $ do
+      funcionKata2 (-3) `shouldBe` (-3)
