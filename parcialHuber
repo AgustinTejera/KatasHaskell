@@ -1,0 +1,199 @@
+module Lib where
+import Text.Show.Functions
+someFunc :: IO ()
+someFunc = putStrLn "someFunc"
+
+
+type Dia = Int
+type Mes = Int
+type Anio = Int
+type Nombre= String
+type Direccion= String
+type Condicion = Viaje->Bool
+-- type Cliente = (Nombre,Direccion)
+
+
+data Cliente = Cliente {
+nombre :: Nombre,
+lugar :: Direccion
+} deriving (Show)
+
+
+data Viaje = Viaje {
+fecha::(Dia,Mes,Anio),
+cliente::Cliente,
+costo::Float  
+} deriving (Show)
+
+
+data Chofer= Chofer {
+nombreChofer::String,
+kilometraje::Int,
+viajes::[Viaje],
+condicion::Condicion
+} deriving (Show)
+
+-------------------En cuanto a la condición para tomar un viaje:   
+-- Punto 2
+-- algunos choferes toman cualquier viaje
+tomanCualquierViaje::Condicion
+tomanCualquierViaje _ = True 
+
+-- otros solo toman los viajes que salgan más de $ 200
+masDe200::Condicion
+masDe200 = (>200).costo 
+
+-- otros toman aquellos en los que el nombre del cliente tenga más de n letras
+masLetras1::Int->Condicion
+masLetras1 n viaje = length ((nombre (cliente viaje))) > n
+masLetras::Int->Condicion
+masLetras n = (>n).length.nombre.cliente  
+
+-- y por último algunos requieren que el cliente no viva en una zona determinada
+noVivaEn1::Direccion->Condicion
+noVivaEn1 zona viaje = zona /= (lugar (cliente viaje))
+noVivaEn::Direccion->Condicion
+noVivaEn zona = (/=zona).lugar.cliente
+
+--3.a) el cliente “Lucas” que vive en Victoria
+
+lucas = Cliente{
+    nombre="Lucas",
+    lugar="Victoria"
+}
+
+{-             SI HUBIERAMOS MODELADO AL CLIENTE COMO TUPLA!!!!!!!!!!!!!!!!!!!!!
+type Cliente = (Nombre,Direccion)
+lucas1::Cliente
+lucas1 = ("Lucas","AV LA PLATA")
+nombre1 = fst 
+direccion1 = snd 
+
+type Cliente = (Nombre,Direccion, costo)
+costo2::Cliente
+costo2 (_,_,c) = c
+-}
+
+--3.b) el chofer “Daniel”, su auto tiene 23.500 kms., hizo un viaje con el cliente Lucas el 20/04/2017 
+-- cuyo costo fue $ 150, y toma los viajes donde el cliente no viva en “Olivos”
+
+-- dani :: Chofer
+-- dani = Chofer "Daniel" 23500 [Viaje (20, 4, 2017) lucas 150] (clienteNoViveEn "Olivos")
+
+daniel= Chofer {
+nombreChofer= "Daniel",
+kilometraje= 23500,
+viajes= [viaje1],
+condicion= noVivaEn "Olivos"
+}
+
+viaje1= Viaje {
+fecha= (20,04,2017),
+cliente= lucas,
+costo= 150 
+} 
+
+
+-- 3.d) la chofer “Alejandra”, su auto tiene 180.000 kms, no hizo viajes y toma cualquier viaje.
+
+alejandra= Chofer {
+nombreChofer= "Alejandra",
+kilometraje= 180000,
+viajes= [],
+condicion= tomanCualquierViaje
+}
+
+-- 4) Saber si un chofer puede tomar un viaje. 
+
+puedeTomar::Chofer->Condicion
+puedeTomar chofer viaje = (condicion chofer) viaje  
+puedeTomar1::Chofer->Condicion
+puedeTomar1 chofer = condicion chofer
+
+-- 5) Saber la liquidación de un chofer, que consiste en sumar los costos de cada uno de los viajes. 
+-- Por ejemplo, Alejandra tiene $ 0 y Daniel tiene $ 150.
+
+liquidacion1 chofer = sum (map costo (viajes chofer)) 
+liquidacion2 = sum.map costo.viajes
+
+liquidacion3 chofer = foldr ((+).costo) 0 (viajes chofer) 
+
+liquidacionChofer4 chofer = foldl (\acum viaje -> acum + costo viaje) 0 (viajes chofer)
+
+
+
+{-
+6)Realizar un viaje: dado un viaje y una lista de choferes, se pide que
+a)filtre los choferes que toman ese viaje. Si ningún chofer está interesado, no se preocupen: el viaje no se puede 
+realizar
+b)considerar el chofer que menos viaje tenga. Si hay más de un chofer elegir cualquiera.
+c)efectuar el viaje: esto debe incorporar el viaje a la lista de viajes del chofer. ¿Cómo logra 
+representar este cambio de estado?
+
+-}
+--filtre los choferes que toman ese viaje. Si ningún chofer está interesado, no se preocupen: el viaje no se puede 
+--realizar.
+
+--realizarUnViaje  listaChoferes = filter (\chofer, viaje  -> (condicion chofer )viaje)  listaChoferes
+
+--realizarUnViaje  listaChoferes =map(\chofer ->condicion chofer )  listaChoferes
+--realizarUnViaje1  listaChoferes =filter (\chofer ->condicion chofer )  listaChoferes
+--choferQueTomaViaje chofer =  condicion chofer
+
+choferesQueTomanViajes choferes viaje = filter (choferQueTomaViaje viaje) choferes
+choferesQueTomanViajes1 choferes viaje = filter (flip puedeTomar viaje)  choferes
+
+choferQueTomaViaje viaje chofer = puedeTomar chofer viaje 
+
+--puedeTomar::Chofer->Condicion
+--puedeTomar chofer viaje = (condicion chofer) viaje  
+--puedeTomar1::Chofer->Condicion
+--puedeTomar1 chofer = condicion chofer
+
+
+
+----------------------------------------------------------------------------
+
+
+-- Punto 6
+realizarViaje :: Viaje -> [Chofer] -> Chofer
+realizarViaje viaje = hacerViaje viaje . choferConMenosViajes . filter (puedeTomarViaje viaje)
+
+choferConMenosViajes :: [Chofer] -> Chofer
+choferConMenosViajes [chofer] = chofer
+choferConMenosViajes (chofer1:chofer2:choferes) = choferConMenosViajes ((elQueMenosViajesHizo chofer1 chofer2):choferes)
+-- otra opcion es hacerlo con fold
+
+elQueMenosViajesHizo :: Chofer -> Chofer -> Chofer
+elQueMenosViajesHizo chofer1 chofer2 
+   | cuantosViajes chofer1 > cuantosViajes chofer2 = chofer2 
+   | otherwise                                     = chofer1
+
+cuantosViajes = length . viajes
+
+hacerViaje viaje chofer = chofer {
+    viajes = viaje : viajes chofer
+} 
+
+-- Punto 7
+repetirViaje :: Viaje -> [Viaje]
+repetirViaje viaje = viaje : repetirViaje viaje
+
+nito = Chofer "Nito Infy" 70000 viajeInfinito $ clienteNombreLargo 3
+
+viajeInfinito = repetirViaje $ Viaje (11, 3, 2017) lucas 50
+
+-- b 
+-- liquidacionChofer nito ... no termina nunca!!
+-- c pero 
+-- puedeTomarViaje (Viaje (2,5,2017) lucas 50) nito
+-- True
+-- porque no involucra a la lista de viajes
+
+-- Punto 8
+gongNeng arg1 arg2 arg3 = 
+     max arg1 . head . filter arg2 . map arg3
+
+--gongNeng :: Ord a => a -> (a -> Bool)  -> (b -> a)  -> [b] -> a
+-- pueden variar las letras en Haskell, a mi me tira
+-- gongNeng :: Ord c => c -> (c -> Bool) -> (a -> c) -> [a] -> c
